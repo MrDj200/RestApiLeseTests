@@ -30,10 +30,11 @@ namespace RestApiLeseTests
             baseItems.Payload.Items.En.OrderBy(e => e.ItemName);
             Console.Title = baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")).ToList().Count + "Items";
 
-            foreach (var item in baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")))
+            Parallel.ForEach(baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")), (item) =>
             {
                 tempUri = new Uri($"{client.BaseAddress}/{item.UrlName}/orders");
-                jsonString = testMethod(tempUri);
+                shit = client.GetAsync(tempUri).GetAwaiter().GetResult();
+                jsonString = shit.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                 Orders orders = Orders.FromJson(jsonString);
 
                 //orders.Payload.Orders.RemoveAll(o => o.User.Status != Status.Online);
@@ -54,20 +55,50 @@ namespace RestApiLeseTests
 
                 str.
                     Append($"{index++}. Name={item.ItemName} URLName= {item.UrlName}\n");
-            }
+            });
+
+            /*foreach (var item in baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")))
+            {
+                tempUri = new Uri($"{client.BaseAddress}/{item.UrlName}/orders");
+                shit = client.GetAsync(tempUri).GetAwaiter().GetResult();
+                jsonString = shit.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Orders orders = Orders.FromJson(jsonString);
+
+                //orders.Payload.Orders.RemoveAll(o => o.User.Status != Status.Online);
+                orders.Payload.Orders.RemoveAll(o => o.Platform != Platform.Pc);
+                orders.Payload.Orders.RemoveAll(o => o.OrderType != OrderType.Sell);
+                orders.Payload.Orders.RemoveAll(o => o.Visible != true);
+
+                orders.Payload.Orders.OrderBy(o => o.Platinum);
+
+
+                //orders.Payload.Orders.RemoveRange(5, orders.Payload.Orders.Count);
+
+                if (orders.Payload.Orders.Count > 0)
+                {
+                    Console.WriteLine($"{index}. {item.ItemName}: {orders.Payload.Orders.Count} times\n");
+                }
+
+
+                str.
+                    Append($"{index++}. Name={item.ItemName} URLName= {item.UrlName}\n");
+            }*/
 
             Console.WriteLine($"{str.ToString()}");
             Console.ReadLine();
         }
 
 
-        public static void testMethod(Uri uri)
+        public void testMethod()
         {
+
+
+            /*
             #region ThreadStuff
-            WebReader shit = new WebReader(uri);
+            WebReader shit = new WebReader();
             Thread botThread = new Thread(shit.letsGetGoing);
             botThread.Start();
-            #endregion
+            #endregion*/
         }
 
     }
