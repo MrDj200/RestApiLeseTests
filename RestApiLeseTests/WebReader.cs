@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -12,6 +13,10 @@ namespace RestApiLeseTests
         private List<Uri> UriList { get; set; }
 
         public List<String> Response { get; set; }
+
+        public WebReader()
+        {
+        }
 
         public WebReader(Uri uri)
         {
@@ -32,23 +37,37 @@ namespace RestApiLeseTests
         }
         
 
-        private async Task<String> ReadFromSite(Uri uri)
-        {
+        public async Task<String> ReadFromSite(Uri uri)
+        {            
             //HttpClient client = new HttpClient();
-            using (HttpClient client = new HttpClient())
-            {    
-                client.BaseAddress = uri;
-
-                HttpResponseMessage response = await client.GetAsync(client.BaseAddress);
-
-                if (!response.IsSuccessStatusCode)
+            using (WebClient client = new WebClient())
+            {
+                try
                 {
-                    throw new Exception("The Server did not accept the request!");
+                    return await client.DownloadStringTaskAsync(uri);
+                }
+                catch (WebException e)
+                {
+
+                    if (e.Status == WebExceptionStatus.ProtocolError)
+                    {
+                        Console.WriteLine(((HttpWebResponse)e.Response).StatusCode);
+                        Console.WriteLine(((HttpWebResponse)e.Response).StatusDescription);
+                        Console.WriteLine("=============================================================");
+                    }
+                    
+                    throw;
+                }
+                
+
+                /*if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"The Server did not accept the request! Response:{response.StatusCode}");
                 }
 
                 string jsonString = await response.Content.ReadAsStringAsync();
 
-                return jsonString;
+                return jsonString;*/
             }
         }
 

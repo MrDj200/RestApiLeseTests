@@ -15,90 +15,88 @@ namespace RestApiLeseTests
 {
     class Program
     {
-        static HttpClient client = new HttpClient();
+
         static void Main(string[] args)
         {
+            MainAsync(args).GetAwaiter().GetResult();
+        }
+
+        static HttpClient client = new HttpClient();
+        static async Task MainAsync(string[] args)
+        {
             client.BaseAddress = new Uri("https://api.warframe.market/v1/items");
-            HttpResponseMessage shit = client.GetAsync(client.BaseAddress).GetAwaiter().GetResult();
-            string jsonString = shit.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            HttpResponseMessage httpResponse = client.GetAsync(client.BaseAddress).GetAwaiter().GetResult();
+            string jsonString = httpResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             BaseItems baseItems = BaseItems.FromJson(jsonString);
 
-            StringBuilder str = new StringBuilder();
-            int index = 0;
-            Uri tempUri;
+            
 
             baseItems.Payload.Items.En.OrderBy(e => e.ItemName);
             Console.Title = baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")).ToList().Count + "Items";
 
-            Parallel.ForEach(baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")), (item) =>
-            {
-                tempUri = new Uri($"{client.BaseAddress}/{item.UrlName}/orders");
-                shit = client.GetAsync(tempUri).GetAwaiter().GetResult();
-                jsonString = shit.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                Orders orders = Orders.FromJson(jsonString);
-
-                //orders.Payload.Orders.RemoveAll(o => o.User.Status != Status.Online);
-                orders.Payload.Orders.RemoveAll(o => o.Platform != Platform.Pc);
-                orders.Payload.Orders.RemoveAll(o => o.OrderType != OrderType.Sell);
-                orders.Payload.Orders.RemoveAll(o => o.Visible != true);
-
-                orders.Payload.Orders.OrderBy(o => o.Platinum);
+            Dictionary<String, List<Order>> fuck = await TestMethod(baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")));
 
 
-                //orders.Payload.Orders.RemoveRange(5, orders.Payload.Orders.Count);
-
-                if (orders.Payload.Orders.Count > 0)
-                {
-                    Console.WriteLine($"{index}. {item.ItemName}: {orders.Payload.Orders.Count} times\n");
-                }
-
-
-                str.
-                    Append($"{index++}. Name={item.ItemName} URLName= {item.UrlName}\n");
-            });
-
-            /*foreach (var item in baseItems.Payload.Items.En.Where(c => c.UrlName.Contains("prime")))
-            {
-                tempUri = new Uri($"{client.BaseAddress}/{item.UrlName}/orders");
-                shit = client.GetAsync(tempUri).GetAwaiter().GetResult();
-                jsonString = shit.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                Orders orders = Orders.FromJson(jsonString);
-
-                //orders.Payload.Orders.RemoveAll(o => o.User.Status != Status.Online);
-                orders.Payload.Orders.RemoveAll(o => o.Platform != Platform.Pc);
-                orders.Payload.Orders.RemoveAll(o => o.OrderType != OrderType.Sell);
-                orders.Payload.Orders.RemoveAll(o => o.Visible != true);
-
-                orders.Payload.Orders.OrderBy(o => o.Platinum);
-
-
-                //orders.Payload.Orders.RemoveRange(5, orders.Payload.Orders.Count);
-
-                if (orders.Payload.Orders.Count > 0)
-                {
-                    Console.WriteLine($"{index}. {item.ItemName}: {orders.Payload.Orders.Count} times\n");
-                }
-
-
-                str.
-                    Append($"{index++}. Name={item.ItemName} URLName= {item.UrlName}\n");
-            }*/
-
-            Console.WriteLine($"{str.ToString()}");
             Console.ReadLine();
         }
 
-
-        public void testMethod()
+        private static async Task<Dictionary<String, List<Order>>> TestMethod(IEnumerable<MarketAPI.En> list)
         {
+            WebReader reader = new WebReader();
+            Dictionary<String, List<Order>> OrderList = new Dictionary<string, List<Order>>();
+
+            IEnumerable<Task> fuckme6 = list.Select(async item => 
+            {
+                Uri tempUri = new Uri($"{client.BaseAddress}/{item.UrlName}/orders");
+
+                string jsonStringFuck = await reader.ReadFromSite(tempUri);
+
+                Orders orders = Orders.FromJson(jsonStringFuck);
+
+                //orders.Payload.Orders.RemoveAll(o => o.User.Status != Status.Online);
+                orders.Payload.Orders.RemoveAll(o => o.Platform != Platform.Pc);
+                orders.Payload.Orders.RemoveAll(o => o.OrderType != OrderType.Sell);
+                orders.Payload.Orders.RemoveAll(o => o.Visible != true);
+
+                orders.Payload.Orders.OrderBy(o => o.Platinum);
 
 
-            /*
-            #region ThreadStuff
-            WebReader shit = new WebReader();
-            Thread botThread = new Thread(shit.letsGetGoing);
-            botThread.Start();
-            #endregion*/
+                if (orders.Payload.Orders.Count >= 7)
+                {
+                    //orders.Payload.Orders.RemoveRange(5, orders.Payload.Orders.Count - 1);
+                    OrderList.Add(item.UrlName, orders.Payload.Orders.Take(5).ToList());
+                }
+            });
+
+            await Task.WhenAll(fuckme6);
+
+            /*ParallelLoopResult fuckMe5 = Parallel.ForEach(list, async (item) =>
+            {
+                Uri tempUri = new Uri($"{client.BaseAddress}/{item.UrlName}/orders");
+                //HttpResponseMessage shit = client.GetAsync(tempUri).GetAwaiter().GetResult();
+                //string jsonStringFuck = shit.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                string jsonStringFuck = await reader.ReadFromSite(tempUri);
+
+                Orders orders = Orders.FromJson(jsonStringFuck);
+
+                //orders.Payload.Orders.RemoveAll(o => o.User.Status != Status.Online);
+                orders.Payload.Orders.RemoveAll(o => o.Platform != Platform.Pc);
+                orders.Payload.Orders.RemoveAll(o => o.OrderType != OrderType.Sell);
+                orders.Payload.Orders.RemoveAll(o => o.Visible != true);
+
+                orders.Payload.Orders.OrderBy(o => o.Platinum);
+
+
+                if (orders.Payload.Orders.Count >= 7 )
+                {
+                    orders.Payload.Orders.RemoveRange(5, orders.Payload.Orders.Count - 1);
+                    OrderList.Add(item.UrlName, orders.Payload.Orders);
+                }
+            });*/
+
+            return OrderList;
+
         }
 
     }
